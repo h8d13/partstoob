@@ -98,13 +98,24 @@ _MIRRORLIST = _PACMAN_D / 'mirrorlist'
 _KEYRING_DIR = Path('/usr/share/pacman/keyrings')
 _ARCHLINUX_KEYRING = _KEYRING_DIR / 'archlinux.gpg'
 
-_DEFAULT_MIRROR = 'https://geo.mirror.pkgbuild.com'
-_DEFAULT_MIRRORS = """\
-# Default Arch Linux mirrors — written by archinstoo bootstrap
-Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
-Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
-Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch
-"""
+_MIRROR_STATUS_URL = 'https://archlinux.org/mirrors/status/json/'
+
+
+def _fetch_mirrorlist() -> str:
+	import json
+
+	info(f'Fetching mirrorlist from {_MIRROR_STATUS_URL}...')
+	with urllib.request.urlopen(_MIRROR_STATUS_URL, timeout=15) as resp:
+		data = json.loads(resp.read().decode('utf-8'))
+	lines = ['# Arch Linux mirrors fetched by archinstoo bootstrap']
+	lines.extend(
+		f'Server = {mirror["url"]}$repo/os/$arch'
+		for mirror in data.get('urls', [])
+		if mirror.get('active') and mirror.get('protocol') in ('https', 'http') and mirror.get('score') is not None and mirror['score'] < 100
+	)
+	return '\n'.join(lines) + '\n'
+
+
 _PACMAN_CONF_URL = 'https://gitlab.archlinux.org/archlinux/packaging/packages/pacman/-/raw/main/pacman.conf'
 
 
@@ -147,7 +158,7 @@ def _fetch_keyring_package_url() -> str:
 					if name == 'href' and value and value.startswith('archlinux-keyring-') and value.endswith('.zst'):
 						self.links.append(value)
 
-	url = f'{_DEFAULT_MIRROR}/core/os/x86_64/'
+	url = 'https://geo.mirror.pkgbuild.com/core/os/x86_64/'
 	with urllib.request.urlopen(url, timeout=30) as resp:
 		content = resp.read().decode('utf-8')
 
@@ -213,9 +224,8 @@ def ensure_pacman_configured() -> None:
 	info('Configuring pacman for non-Arch host...')
 
 	_PACMAN_D.mkdir(parents=True, exist_ok=True)
-	if not _MIRRORLIST.exists():
-		info(f'Writing {_MIRRORLIST}...')
-		_MIRRORLIST.write_text(_DEFAULT_MIRRORS)
+	info(f'Writing {_MIRRORLIST}...')
+	_MIRRORLIST.write_text(_fetch_mirrorlist())
 
 	info(f'Writing {_PACMAN_CONF}...')
 	_PACMAN_CONF.write_text(_fetch_pacman_conf())

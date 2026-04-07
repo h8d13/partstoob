@@ -165,11 +165,7 @@ def _prepare() -> int:
 	if is_venv() or not is_root():
 		return 0
 
-	# skip pacman bootstrap on non-Arch hosts (e.g. Alpine)
-	# deps must be pre-installed via the host package manager
-	if Os.running_from_host() and not Os.running_from_arch():
-		info('Non-Arch host detected, skipping pacman bootstrap...')
-		return 0
+	non_arch_host = Os.running_from_host() and not Os.running_from_arch()
 
 	# check online (or offline requested) before trying to fetch packages
 	if '--offline' not in sys.argv:
@@ -182,7 +178,8 @@ def _prepare() -> int:
 			ensure_keyring_initialized()
 			info('Fetching db...')
 			Pacman.run('-Sy', peek_output=True)
-			if rc := _bootstrap():
+			# non-Arch hosts have deps pre-installed via host package manager
+			if not non_arch_host and (rc := _bootstrap()):
 				return rc
 		except Exception as e:
 			error('Failed to prepare app.')
