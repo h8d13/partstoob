@@ -85,9 +85,6 @@ source = "pacman"
 [pacman-contrib]
 source = "pacman"
 
-[python-systemd]
-source = "pacman"
-
 [tree]
 source = "pacman"
 

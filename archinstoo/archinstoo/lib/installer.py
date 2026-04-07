@@ -33,7 +33,6 @@ from archinstoo.lib.models.device import (
 )
 from archinstoo.lib.models.packages import Repository
 from archinstoo.lib.pathnames import PACMAN_CONF
-from archinstoo.lib.pm import installed_package
 from archinstoo.lib.translationhandler import tr
 from archinstoo.lib.tui.curses_menu import Tui
 
@@ -182,7 +181,9 @@ class Installer:
 		# architecture and parse results for prints
 		# https://github.com/archlinux/archinstall/issues/3688
 		# be more descriptive about status in code + what user sees
-		if not self._args.skip_ntp:
+		if not shutil.which('timedatectl'):
+			debug('timedatectl not available, skipping NTP sync check')
+		elif not self._args.skip_ntp:
 			info(tr('Waiting for NTP time synchronization...'))
 
 			started_wait = time.time()
@@ -200,7 +201,7 @@ class Installer:
 		else:
 			info(tr('Skipping NTP time sync (may cause issues if system time is incorrect)'))
 
-		if not self._args.offline and SysInfo.arch() == 'x86_64':
+		if not self._args.offline and SysInfo.arch() == 'x86_64' and shutil.which('systemctl'):
 			info('Waiting for reflector mirror selection...')
 			reflector_state = self._service_state('reflector')
 			timed_out = True
@@ -218,9 +219,9 @@ class Installer:
 			else:
 				info('Reflector mirror selection completed')
 		else:
-			info('Skipping reflector (offline mode or non-x86_64 architecture)')
+			info('Skipping reflector (offline mode, non-x86_64, or non-systemd host)')
 
-		if not self._args.skip_wkd:
+		if not self._args.skip_wkd and shutil.which('systemctl'):
 			info(tr('Waiting for Arch Linux keyring sync...'))
 			# Wait for the timer to kick in
 			while self._service_started('archlinux-keyring-wkd-sync.timer') is None:
@@ -698,7 +699,10 @@ class Installer:
 			info(f'Enabling service {service}')
 
 			try:
-				SysCommand(f'systemctl --root={self.target} enable {service}')
+				if shutil.which('systemctl'):
+					SysCommand(f'systemctl --root={self.target} enable {service}')
+				else:
+					self.run_command(f'systemctl enable {service}')
 			except SysCallError as err:
 				raise ServiceException(f'Unable to start service {service}: {err}')
 
@@ -747,14 +751,24 @@ class Installer:
 			info(f'Disabling service {service}')
 
 			try:
-				SysCommand(f'systemctl --root={self.target} disable {service}')
+				if shutil.which('systemctl'):
+					SysCommand(f'systemctl --root={self.target} disable {service}')
+				else:
+					self.run_command(f'systemctl disable {service}')
 			except SysCallError as err:
 				raise ServiceException(f'Unable to disable service {service}: {err}')
+
+	@property
+	def _arch_chroot_cmd(self) -> list[str]:
+		"""Return the arch-chroot base command, omitting -S when systemd-run is unavailable."""
+		if shutil.which('systemd-run'):
+			return ['arch-chroot', '-S', str(self.target)]
+		return ['arch-chroot', str(self.target)]
 
 	def run_command(self, cmd: str, peek_output: bool = False) -> SysCommand:
 		if self.target == Path('/'):
 			return SysCommand(cmd, peek_output=peek_output)
-		return SysCommand(f'arch-chroot -S {self.target} {cmd}', peek_output=peek_output)
+		return SysCommand(f'{" ".join(self._arch_chroot_cmd)} {cmd}', peek_output=peek_output)
 
 	def arch_chroot(self, cmd: str, run_as: str | None = None, peek_output: bool = False) -> SysCommand:
 		if run_as:
@@ -1002,9 +1016,7 @@ class Installer:
 
 			for config_name, mountpoint in snapper.items():
 				command = [
-					'arch-chroot',
-					'-S',
-					str(self.target),
+					*self._arch_chroot_cmd,
 					'snapper',
 					'--no-dbus',
 					'-c',
@@ -1268,25 +1280,23 @@ class Installer:
 			bootctl_options.append(f'--esp-path={efi_partition.mountpoint}')
 			bootctl_options.append(f'--boot-path={boot_partition.mountpoint}')
 
-		# TODO: This is a temporary workaround to deal with https://github.com/archlinux/archinstall/pull/3396#issuecomment-2996862019
-		# the systemd_version check can be removed once `--variables=BOOL` is merged into systemd.
-		# keep the version as a str as it can be something like 257.8-2
-		if (systemd_pkg := installed_package('systemd')) is not None:
-			systemd_version = systemd_pkg.version
-		else:
-			systemd_version = '257'  # This works as a safety workaround for this hot-fix
+		# Query the target's bootctl version directly to avoid host/target skew.
+		# bootctl >=258 needs --variables=yes/no inside arch-chroot (container detection).
+		# https://github.com/systemd/systemd/issues/36174
+		try:
+			bootctl_ver_out = self.arch_chroot('bootctl --version').decode()
+			m = re.search(r'\b(\d+)\b', bootctl_ver_out)
+			systemd_version = m.group(1) if m else '257'
+		except SysCallError:
+			systemd_version = '257'
 
 		try:
-			# Force EFI variables since bootctl detects arch-chroot
-			# as a container environment since v257 and skips them silently.
-			# https://github.com/systemd/systemd/issues/36174
 			if systemd_version >= '258':
 				self.arch_chroot(f'bootctl --variables=yes {" ".join(bootctl_options)} install')
 			else:
 				self.arch_chroot(f'bootctl {" ".join(bootctl_options)} install')
 		except SysCallError:
 			if systemd_version >= '258':
-				# Fallback, try creating the boot loader without touching the EFI variables
 				self.arch_chroot(f'bootctl --variables=no {" ".join(bootctl_options)} install')
 			else:
 				self.arch_chroot(f'bootctl --no-variables {" ".join(bootctl_options)} install')
@@ -1352,9 +1362,7 @@ class Installer:
 		boot_dir = Path('/boot')
 
 		command = [
-			'arch-chroot',
-			'-S',
-			str(self.target),
+			*self._arch_chroot_cmd,
 			'grub-install',
 			'--debug',
 		]
@@ -2030,7 +2038,7 @@ class Installer:
 			return False
 
 		input_data = f'{user.username}:{enc_password}'.encode()
-		cmd = ['arch-chroot', '-S', str(self.target), 'chpasswd', '--encrypted']
+		cmd = [*self._arch_chroot_cmd, 'chpasswd', '--encrypted']
 
 		try:
 			run(cmd, input_data=input_data)
@@ -2120,6 +2128,9 @@ EndSection
 		return True
 
 	def _service_started(self, service_name: str) -> str | None:
+		if not shutil.which('systemctl'):
+			return 'dead'  # non-systemd host — treat as already done
+
 		if os.path.splitext(service_name)[1] not in ('.service', '.target', '.timer'):
 			service_name += '.service'  # Just to be safe
 
@@ -2138,6 +2149,9 @@ EndSection
 		return last_execution_time
 
 	def _service_state(self, service_name: str) -> str:
+		if not shutil.which('systemctl'):
+			return 'dead'  # non-systemd host — treat as not running
+
 		if os.path.splitext(service_name)[1] not in ('.service', '.target', '.timer'):
 			service_name += '.service'  # Just to be safe
 
@@ -2148,6 +2162,8 @@ EndSection
 
 
 def accessibility_tools_in_use() -> bool:
+	if not shutil.which('systemctl'):
+		return False
 	return subprocess.run(['systemctl', 'is-active', '--quiet', 'espeakup.service'], check=False).returncode == 0
 
 
@@ -2197,7 +2213,7 @@ def run_custom_user_commands(commands: list[str], installation: Installer) -> No
 			user_script.write(command)
 
 		try:
-			SysCommand(f'arch-chroot -S {installation.target} bash {script_path}')
+			SysCommand([*installation._arch_chroot_cmd, 'bash', script_path])
 		except SysCallError as e:
 			warn(f'Custom command "{command}" failed: {e}')
 		finally:

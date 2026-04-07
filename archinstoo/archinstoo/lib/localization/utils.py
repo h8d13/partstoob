@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from archinstoo.lib.exceptions import ServiceException, SysCallError
@@ -5,89 +6,142 @@ from archinstoo.lib.general import SysCommand
 from archinstoo.lib.output import error
 from archinstoo.lib.utils.env import Os
 
+# ---------------------------------------------------------------------------
+# Keyboard layouts
+# ---------------------------------------------------------------------------
+
+
+def _list_keymaps_from_files() -> list[str]:
+	"""Fallback: enumerate console keymaps directly from kbd/keymaps files."""
+	keymaps: list[str] = []
+
+	for kbd_path in (Path('/usr/share/kbd/keymaps'), Path('/usr/share/keymaps')):
+		if not kbd_path.exists():
+			continue
+		keymaps.extend(path.stem.replace('.map', '') for path in kbd_path.rglob('*.map.gz'))
+		keymaps.extend(path.stem for path in kbd_path.rglob('*.map'))
+		break  # use the first directory that exists
+
+	return sorted(set(keymaps))
+
 
 def list_keyboard_languages() -> list[str]:
-	return (
-		SysCommand(
-			'localectl --no-pager list-keymaps',
-			environment_vars={'SYSTEMD_COLORS': '0'},
-		)
-		.decode()
-		.splitlines()
-	)
-
-
-def list_locales() -> list[str]:
-	with open('/usr/share/i18n/SUPPORTED') as file:
-		return [line.rstrip() for line in file if line != 'C.UTF-8 UTF-8\n']
+	if shutil.which('localectl'):
+		return SysCommand('localectl --no-pager list-keymaps', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+	return _list_keymaps_from_files()
 
 
 def verify_keyboard_layout(layout: str) -> bool:
 	return any(layout.lower() == language.lower() for language in list_keyboard_languages())
 
 
+# ---------------------------------------------------------------------------
+# X11 keyboard layouts
+# ---------------------------------------------------------------------------
+
+
+def _list_x11_layouts_from_files() -> list[str]:
+	"""Fallback: parse X11 layout names from xkb rules files."""
+	layouts: list[str] = []
+
+	for rules_path in (
+		Path('/usr/share/X11/xkb/rules/base.lst'),
+		Path('/usr/share/X11/xkb/rules/evdev.lst'),
+	):
+		if not rules_path.exists():
+			continue
+		in_layout_section = False
+		for line in rules_path.read_text().splitlines():
+			if line.strip() == '! layout':
+				in_layout_section = True
+				continue
+			if line.startswith('!'):
+				in_layout_section = False
+				continue
+			if in_layout_section and line.strip():
+				parts = line.split()
+				if parts:
+					layouts.append(parts[0])
+		break
+
+	return sorted(set(layouts))
+
+
 def list_x11_keyboard_languages() -> list[str]:
-	return (
-		SysCommand(
-			'localectl --no-pager list-x11-keymap-layouts',
-			environment_vars={'SYSTEMD_COLORS': '0'},
+	if shutil.which('localectl'):
+		return (
+			SysCommand(
+				'localectl --no-pager list-x11-keymap-layouts',
+				environment_vars={'SYSTEMD_COLORS': '0'},
+			)
+			.decode()
+			.splitlines()
 		)
-		.decode()
-		.splitlines()
-	)
+	return _list_x11_layouts_from_files()
 
 
 def verify_x11_keyboard_layout(layout: str) -> bool:
 	return any(layout.lower() == language.lower() for language in list_x11_keyboard_languages())
 
 
+# ---------------------------------------------------------------------------
+# Active keyboard layout (read / write)
+# ---------------------------------------------------------------------------
+
+
 def get_kb_layout() -> str:
-	try:
-		lines = (
-			SysCommand(
-				'localectl --no-pager status',
-				environment_vars={'SYSTEMD_COLORS': '0'},
-			)
-			.decode()
-			.splitlines()
-		)
-	except Exception:
+	if shutil.which('localectl'):
+		try:
+			lines = SysCommand('localectl --no-pager status', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+		except Exception:
+			return ''
+
+		for line in lines:
+			if 'VC Keymap: ' in line:
+				layout = line.split(': ', 1)[1].strip()
+				return layout if verify_keyboard_layout(layout) else ''
 		return ''
 
-	vcline = ''
-	for line in lines:
-		if 'VC Keymap: ' in line:
-			vcline = line
+	# Fallback: read /etc/vconsole.conf (written by systemd or by us)
+	vconsole = Path('/etc/vconsole.conf')
+	if vconsole.exists():
+		for line in vconsole.read_text().splitlines():
+			if line.startswith('KEYMAP='):
+				layout = line.split('=', 1)[1].strip().strip('"\'')
+				return layout if verify_keyboard_layout(layout) else ''
 
-	if vcline == '':
-		return ''
-
-	layout = vcline.split(': ')[1]
-	if not verify_keyboard_layout(layout):
-		return ''
-
-	return layout
+	return ''
 
 
 def set_kb_layout(locale: str) -> bool:
 	if Os.running_from_host():
-		# Skip when running from host - no need to change host keymap
 		# The target installation keymap is set via installer.set_vconsole()
 		return True
 
-	if len(locale.strip()):
-		if not verify_keyboard_layout(locale):
-			error(f'Invalid keyboard locale specified: {locale}')
-			return False
+	if not locale.strip():
+		return False
 
+	if not verify_keyboard_layout(locale):
+		error(f'Invalid keyboard locale specified: {locale}')
+		return False
+
+	if shutil.which('localectl'):
 		try:
 			SysCommand(f'localectl set-keymap {locale}')
 		except SysCallError as err:
 			raise ServiceException(f"Unable to set locale '{locale}' for console: {err}")
+	elif shutil.which('loadkeys'):
+		try:
+			SysCommand(f'loadkeys {locale}')
+		except SysCallError as err:
+			raise ServiceException(f"Unable to set locale '{locale}' for console: {err}")
 
-		return True
+	return True
 
-	return False
+
+# ---------------------------------------------------------------------------
+# Console fonts
+# ---------------------------------------------------------------------------
 
 
 def list_console_fonts() -> list[str]:
@@ -96,7 +150,6 @@ def list_console_fonts() -> list[str]:
 
 	if font_dir.exists():
 		for f in font_dir.iterdir():
-			# skip documentation files
 			if f.name.startswith('README'):
 				continue
 			name = f.name
@@ -109,12 +162,73 @@ def list_console_fonts() -> list[str]:
 	return sorted(fonts, key=lambda x: (len(x), x))
 
 
+# ---------------------------------------------------------------------------
+# Locales
+# ---------------------------------------------------------------------------
+
+
+def list_locales() -> list[str]:
+	supported = Path('/usr/share/i18n/SUPPORTED')
+	if supported.exists():
+		return [line.rstrip() for line in supported.read_text().splitlines() if line and line != 'C.UTF-8 UTF-8']
+
+	# Fallback: uncommented entries in /etc/locale.gen
+	locale_gen = Path('/etc/locale.gen')
+	if locale_gen.exists():
+		locales = [line.strip() for line in locale_gen.read_text().splitlines() if line.strip() and not line.startswith('#')]
+		if locales:
+			return locales
+
+	# Last resort: common defaults so the UI is never empty
+	return [
+		'en_US.UTF-8 UTF-8',
+		'en_GB.UTF-8 UTF-8',
+		'de_DE.UTF-8 UTF-8',
+		'fr_FR.UTF-8 UTF-8',
+		'es_ES.UTF-8 UTF-8',
+		'it_IT.UTF-8 UTF-8',
+		'pt_BR.UTF-8 UTF-8',
+		'ru_RU.UTF-8 UTF-8',
+		'zh_CN.UTF-8 UTF-8',
+		'ja_JP.UTF-8 UTF-8',
+	]
+
+
+# ---------------------------------------------------------------------------
+# Timezones
+# ---------------------------------------------------------------------------
+
+
 def list_timezones() -> list[str]:
-	return (
-		SysCommand(
-			'timedatectl --no-pager list-timezones',
-			environment_vars={'SYSTEMD_COLORS': '0'},
-		)
-		.decode()
-		.splitlines()
-	)
+	if shutil.which('timedatectl'):
+		return SysCommand('timedatectl --no-pager list-timezones', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+
+	# Fallback: scan /usr/share/zoneinfo directly (works on Alpine and any distro)
+	zoneinfo = Path('/usr/share/zoneinfo')
+	if not zoneinfo.exists():
+		return []
+
+	_skip = {
+		'posix',
+		'right',
+		'posixrules',
+		'localtime',
+		'leap-seconds.list',
+		'leapseconds',
+		'tzdata.zi',
+		'zone.tab',
+		'zone1970.tab',
+		'iso3166.tab',
+	}
+
+	timezones: list[str] = []
+	for path in sorted(zoneinfo.rglob('*')):
+		if not path.is_file():
+			continue
+		if any(part in _skip for part in path.parts):
+			continue
+		tz = str(path.relative_to(zoneinfo))
+		if '/' in tz and not tz.startswith('+'):
+			timezones.append(tz)
+
+	return timezones

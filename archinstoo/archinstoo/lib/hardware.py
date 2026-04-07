@@ -247,7 +247,11 @@ class _SysInfo:
 		"""
 		Returns detected graphics devices (cached)
 		"""
+		import shutil
+
 		cards: dict[str, str] = {}
+		if not shutil.which('lspci'):
+			return cards
 		for line in SysCommand('lspci'):
 			if b' VGA ' in line or b' 3D ' in line:
 				_, identifier = line.split(b': ', 1)
@@ -323,6 +327,18 @@ class SysInfo:
 
 	@staticmethod
 	def is_vm() -> bool:
+		import shutil
+
+		if not shutil.which('systemd-detect-virt'):
+			# Fallback: check kernel/DMI indicators directly
+			try:
+				vendor = Path('/sys/class/dmi/id/sys_vendor').read_text().strip().lower()
+				if any(v in vendor for v in ('qemu', 'kvm', 'vmware', 'virtualbox', 'xen', 'microsoft', 'bochs', 'innotek')):
+					return True
+			except OSError:
+				pass
+			return Path('/sys/hypervisor/type').exists()
+
 		try:
 			result = SysCommand('systemd-detect-virt')
 			return b'none' not in b''.join(result).lower()

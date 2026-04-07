@@ -39,7 +39,6 @@ optdepends=(
   'xfsprogs: XFS filesystem support'
   'cryptsetup: LUKS encryption support'
   'lvm2: LVM layout support'
-  'python-systemd: system journal logging'
 )
 provides=(archinstoo)
 replaces=(archinstoo)
