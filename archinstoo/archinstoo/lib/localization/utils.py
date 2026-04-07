@@ -156,13 +156,22 @@ def list_locales() -> list[str]:
 			return locales
 
 	# Last resort: fetch upstream glibc SUPPORTED list
+	# Source format: "en_US.UTF-8/UTF-8 \" — convert to "en_US.UTF-8 UTF-8"
 	try:
 		import urllib.request
 
 		url = 'https://raw.githubusercontent.com/bminor/glibc/master/localedata/SUPPORTED'
 		with urllib.request.urlopen(url, timeout=5) as resp:
 			text = resp.read().decode('utf-8')
-		return [line.rstrip() for line in text.splitlines() if line and not line.startswith('#') and line != 'C.UTF-8 UTF-8']
+		locales = []
+		for line in text.splitlines():
+			line = line.rstrip(' \\').strip()
+			if not line or line.startswith('#'):
+				continue
+			entry = line.replace('/', ' ', 1)
+			if entry != 'C.UTF-8 UTF-8':
+				locales.append(entry)
+		return locales
 	except Exception:
 		pass
 
