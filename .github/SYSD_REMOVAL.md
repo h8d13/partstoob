@@ -5,6 +5,11 @@ Goal: build and run archinstoo from **any Linux distro** (Alpine, Debian, Fedora
 Calls that operate on the **target** system (chroot / `--root=`) are intentional and must stay.
 Only **host-side** systemd calls need to be eliminated → Inside chroot is fine.
 
+The idea is to test more host-to-target (h2t) installs without ISOs:
+Mainly to see which parts of codebase have either: 
+
+Clean-up issues or Timing issues with weird disk configs
+
 ---
 
 ## Target-side calls (keep as-is)
@@ -98,3 +103,5 @@ is already importable (e.g. Alpine provides `py3-parted` ...).
 | `lspci` guard | `lib/hardware.py` | Returns empty dict when `lspci` is not available |
 | `_pid_exists` portability | `lib/general.py` | Replaced `ps --no-headers` (procps-specific) with `os.kill(pid, 0)` |
 | `crypt.py` musl support | `lib/authentication/crypt.py` | Portable library discovery; correct `crypt_gensalt` symbol check via `lib['name']` (not `hasattr`); SHA-512 fallback when yescrypt is unsupported |
+
+---
