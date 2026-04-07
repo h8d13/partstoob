@@ -176,7 +176,7 @@ def _prepare() -> int:
 		# note indent fully offlines installs should be possible
 		# instead of importing full handler use sys.argv directly
 		try:
-			# ensure_pacman_configured() moved to pm/mirrors
+			# ensure_pacman_configured() moved to pmmirrors
 			ensure_keyring_initialized()
 			# non-Arch hosts have deps pre-installed via host package manager
 			if not non_arch_host and (rc := _bootstrap()):
