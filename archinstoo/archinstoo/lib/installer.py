@@ -574,8 +574,8 @@ class Installer:
 			with open(pacman_conf_path, 'a') as fp:
 				fp.write(repos_config)
 
-		# Speed test only for the live system, target reuses the same order
-		regions_config = pacman_configuration.regions_config(speed_sort=not on_target)
+		# Speed test results are cached, so always use speed_sort to filter out dead mirrors
+		regions_config = pacman_configuration.regions_config(speed_sort=True)
 		if regions_config:
 			debug(f'Mirrorlist:\n{regions_config}')
 			mirrorlist_path.write_text(regions_config)
