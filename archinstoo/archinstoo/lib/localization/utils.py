@@ -155,19 +155,18 @@ def list_locales() -> list[str]:
 		if locales:
 			return locales
 
-	# Last resort: common defaults so the UI is never empty
-	return [
-		'en_US.UTF-8 UTF-8',
-		'en_GB.UTF-8 UTF-8',
-		'de_DE.UTF-8 UTF-8',
-		'fr_FR.UTF-8 UTF-8',
-		'es_ES.UTF-8 UTF-8',
-		'it_IT.UTF-8 UTF-8',
-		'pt_BR.UTF-8 UTF-8',
-		'ru_RU.UTF-8 UTF-8',
-		'zh_CN.UTF-8 UTF-8',
-		'ja_JP.UTF-8 UTF-8',
-	]
+	# Last resort: fetch upstream glibc SUPPORTED list
+	try:
+		import urllib.request
+
+		url = 'https://raw.githubusercontent.com/bminor/glibc/master/localedata/SUPPORTED'
+		with urllib.request.urlopen(url, timeout=5) as resp:
+			text = resp.read().decode('utf-8')
+		return [line.rstrip() for line in text.splitlines() if line and not line.startswith('#') and line != 'C.UTF-8 UTF-8']
+	except Exception:
+		pass
+
+	return []
 
 
 def list_timezones() -> list[str]:
