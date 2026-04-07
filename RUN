@@ -1,6 +1,6 @@
 #!/bin/bash
 # shellcheck disable=SC1091,SC2154
-if [ "$USER" = "root" ]; then
+if [ "$(id -u)" = "0" ]; then
     ELEV=""
 else
     ELEV="${ELEV:-sudo}"
