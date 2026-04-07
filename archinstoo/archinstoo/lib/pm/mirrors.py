@@ -557,7 +557,8 @@ class MirrorListHandler:
 			print()
 
 			# Sort by speed descending (higher is better in bitrate form core.db download)
-			return sorted(region_list, key=lambda mirror: -mirror.speed)
+			# Filter out mirrors that failed speed test (speed=0 means timeout/DNS failure)
+			return sorted([m for m in region_list if m.speed > 0], key=lambda mirror: -mirror.speed)
 		# just return as-is without sorting?
 		return region_list
 
