@@ -17,11 +17,14 @@
 
 # apk add git
 # git clone -b dot-sysdep git-url
+# cd archinstoo
+# ./ALP
 
 # shellcheck disable=SC2046
 
 apk add --no-cache $(awk '{print $1}' << 'EOF'
     ca-certificates         # for https handshakes
+    zstd                    # keyring
     eudev                   # device/udev
     py3-pip                 # pip no pyparted
     python3-dev             # python headers
