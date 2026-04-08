@@ -1,0 +1,9 @@
+FROM fedora:latest
+
+COPY FED .
+RUN sh FED
+
+COPY . .
+
+ENTRYPOINT ["./RUN"]
+CMD ["--help"]
