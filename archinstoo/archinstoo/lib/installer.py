@@ -50,6 +50,7 @@ from .models.users import User
 from .output import debug, error, info, log, logger, warn
 from .pm import Pacman
 from .pm.config import PacmanConfig
+from .utils.env import Os
 
 # Base packages installed by default
 __base_packages__ = ['base', 'linux-firmware']
