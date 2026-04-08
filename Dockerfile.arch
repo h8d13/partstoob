@@ -1,0 +1,21 @@
+FROM archlinux:latest
+
+RUN pacman -Sy --noconfirm --needed \
+    python \
+    python-pyparted \
+    parted \
+    arch-install-scripts \
+    pciutils \
+    dosfstools \
+    device-mapper \
+    e2fsprogs \
+    cryptsetup \
+    lvm2 \
+    btrfs-progs \
+    f2fs-tools \
+    xfsprogs
+
+COPY . .
+
+ENTRYPOINT ["./RUN"]
+CMD ["--help"]

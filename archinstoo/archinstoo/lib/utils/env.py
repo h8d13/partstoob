@@ -1,4 +1,3 @@
-import html.parser
 import importlib
 import json
 import os
@@ -12,7 +11,6 @@ import tempfile
 import urllib.request
 from pathlib import Path
 from shutil import rmtree, which
-from typing import override
 
 from archinstoo.lib.exceptions import RequirementError
 from archinstoo.lib.output import error, info
@@ -145,31 +143,15 @@ def _fetch_pacman_conf() -> str:
 
 def _fetch_keyring_package_url() -> str:
 	"""Find the latest archlinux-keyring package URL from the geo mirror."""
-
-	class _LinkParser(html.parser.HTMLParser):
-		def __init__(self) -> None:
-			super().__init__()
-			self.links: list[str] = []
-
-		@override
-		def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-			if tag == 'a':
-				for name, value in attrs:
-					if name == 'href' and value and value.startswith('archlinux-keyring-') and value.endswith('.zst'):
-						self.links.append(value)
-
 	url = 'https://geo.mirror.pkgbuild.com/core/os/x86_64/'
 	with urllib.request.urlopen(url, timeout=30) as resp:
 		content = resp.read().decode('utf-8')
 
-	parser = _LinkParser()
-	parser.feed(content)
-
-	if not parser.links:
+	links = re.findall(r'href="(archlinux-keyring-[^"]+\.zst)"', content)
+	if not links:
 		raise RuntimeError('Could not find archlinux-keyring package on mirror')
 
-	pkg = sorted(parser.links)[-1]  # latest version sorts last alphabetically
-	return f'{url}{pkg}'
+	return f'{url}{sorted(links)[-1]}'
 
 
 def _extract_zst(zst_path: Path, dest: Path) -> None:

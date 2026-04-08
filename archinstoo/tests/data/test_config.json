@@ -1,6 +1,6 @@
 {
   "archinstall-language": "English",
-  "script": "test_script",
+  "script": "guided",
   "app_config": {
       "bluetooth_config": {
           "enabled": true
@@ -31,11 +31,11 @@
       }
   },
   "auth_config": {
-      "root_enc_password": "password_hash",
+      "root_enc_password": "__RHASH__",
       "users": [
           {
-              "username": "user_name",
-              "enc_password": "password_hash",
+              "username": "testuser",
+              "enc_password": "__UHASH__",
               "elev": true,
               "groups": ["wheel", "adm", "log"],
               "shell": "fish"
