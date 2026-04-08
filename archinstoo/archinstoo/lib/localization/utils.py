@@ -35,7 +35,10 @@ def _list_keymaps_from_kbd_git() -> list[str]:
 
 def list_keyboard_languages() -> list[str]:
 	if shutil.which('localectl'):
-		return SysCommand('localectl --no-pager list-keymaps', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+		try:
+			return SysCommand('localectl --no-pager list-keymaps', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+		except SysCallError:
+			pass
 	try:
 		return _list_keymaps_from_kbd_git()
 	except Exception:
@@ -71,14 +74,17 @@ def _list_x11_layouts_from_xkb_git() -> list[str]:
 
 def list_x11_keyboard_languages() -> list[str]:
 	if shutil.which('localectl'):
-		return (
-			SysCommand(
-				'localectl --no-pager list-x11-keymap-layouts',
-				environment_vars={'SYSTEMD_COLORS': '0'},
+		try:
+			return (
+				SysCommand(
+					'localectl --no-pager list-x11-keymap-layouts',
+					environment_vars={'SYSTEMD_COLORS': '0'},
+				)
+				.decode()
+				.splitlines()
 			)
-			.decode()
-			.splitlines()
-		)
+		except SysCallError:
+			pass
 	try:
 		return _list_x11_layouts_from_xkb_git()
 	except Exception:
@@ -207,7 +213,10 @@ def list_locales() -> list[str]:
 
 def list_timezones() -> list[str]:
 	if shutil.which('timedatectl'):
-		return SysCommand('timedatectl --no-pager list-timezones', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+		try:
+			return SysCommand('timedatectl --no-pager list-timezones', environment_vars={'SYSTEMD_COLORS': '0'}).decode().splitlines()
+		except SysCallError:
+			pass
 
 	# Fallback: scan /usr/share/zoneinfo directly (works on Alpine and any distro)
 	zoneinfo = Path('/usr/share/zoneinfo')
