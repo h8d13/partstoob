@@ -2,4 +2,4 @@
 # shellcheck disable=SC1091,SC2154
 # help / list / size / mirrors
 # do not need root but we append it for most features
-(cd archinstoo && python3 -B -m archinstoo "$@") && cd ..
+(cd archinstoo && python -B -m archinstoo "$@") && cd ..
