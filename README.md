@@ -129,6 +129,16 @@ The idea being to promote **option 2** to use archinstoo latest. Always, since f
 
 ---
 
+## partstoob
+
+Experimental branch porting archinstoo to run from **any Linux host** (not just Arch ISOs).
+
+Bootstrap scripts with deps: [Alpine](./ALP) | [Debian](./DEB) | [Fedora](./FED)
+
+See [BOOTSTRAP.md](.github/BOOTSTRAP.md) for details.
+
+---
+
 See `archinstall` [upstream](https://github.com/archlinux/archinstall)
 
 See `grimaur` [aur-helper](https://github.com/mackilanu/grimaur)
