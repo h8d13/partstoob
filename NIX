@@ -1,5 +1,8 @@
 # shell.nix
-# Usage: nix-shell NIX
+# Usage: nix-shell -p git
+# clone then cd
+# nix-shell NIX
+
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
