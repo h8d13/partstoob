@@ -9,4 +9,17 @@ Experimental branch porting `archinstoo` to run from **any Linux host** (not jus
 | Fedora | ✅ | ✅ | [FED](./FED) | ⚠️ |
 | NixOS | ✅ | ✅ | [NIX](./NIX) | ✅ |
 
-See [BOOTSTRAP.md](.github/BOOTSTRAP.md) for details.
+For distros that do not package `arch-install-scripts`:
+
+coreutils
+util-linux
+awk
+bash
+asciidoc
+
+```shell
+git clone --depth 1 https://gitlab.archlinux.org/archlinux/arch-install-scripts.git
+cd arch-install-scripts && make PREFIX=/usr/local install
+```
+
+See [BOOTSTRAP.md](.github/BOOTSTRAP.md) for details on how this branch is possible.
