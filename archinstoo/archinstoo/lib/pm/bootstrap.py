@@ -112,7 +112,6 @@ def keyring_init() -> None:
 
 	info('Initializing pacman-key...')
 	subprocess.run(['pacman-key', '--init'], check=True)
-	subprocess.run(['pacman-key', '--populate', 'archlinux'], check=True)
 
 
 def pacman_conf() -> None:
