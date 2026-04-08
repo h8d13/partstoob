@@ -3,6 +3,8 @@
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
+  LD_LIBRARY_PATH = "${pkgs.libxcrypt}/lib";
+
   buildInputs = with pkgs; [
     # Core
     pacman
@@ -26,5 +28,6 @@ pkgs.mkShell {
     pciutils
     parted
     zstd
+    libxcrypt
   ];
 }
