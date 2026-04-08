@@ -3,7 +3,9 @@
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
-  LD_LIBRARY_PATH = "${pkgs.libxcrypt}/lib";
+  shellHook = ''
+    export LD_LIBRARY_PATH="${pkgs.libxcrypt}/lib:$LD_LIBRARY_PATH"
+  '';
 
   buildInputs = with pkgs; [
     # Core
