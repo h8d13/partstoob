@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # goal was to document building archinstoo from a non systemd host
-# this involved quite a bit of bootstrapping
+# this involved quite a bit of bootstrapping, from a fresh alpine ISO
+# step i followed exactly
 
 # ip link set eth0 up
 # udhcpc -i eth0
@@ -15,7 +16,7 @@
 # apk update
 
 # apk add git
-# git clone -b dot-somework url
+# git clone -b dot-sysdep git-url
 
 # shellcheck disable=SC2046
 

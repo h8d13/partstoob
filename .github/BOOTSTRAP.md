@@ -1,17 +1,21 @@
 # Systemd Dependency Removal
 
-Many distros provide `arch-install-scripts`, `pacman` and related tools.
+Some distros provide `arch-install-scripts`, `pacman` and related tools.
+
 Goal: build and run archinstoo from **any Linux distro** (Alpine, Debian, Fedora, …).
+
 Calls that operate on the **target** system (chroot / `--root=`) are intentional and must stay.
 Only **host-side** systemd calls need to be eliminated → Inside chroot is fine.
 
-The idea is to test more host-to-target (h2t) installs without ISOs:
-Mainly to see which parts of codebase have either: 
+The idea is to test more host-to-target (h2t) installs without ISOs 
+(as ISO-testing seems to be standard, but is bad practice since it's only a tmp envir, with a lot of tools added, easy to lose track of which tool did what, pr discard proper clean-up steps)
 
+Mainly to see which parts of codebase have either: 
 Clean-up issues or Timing issues with weird disk configs
 
 The other side is also that sysd is available in the target either-way. 
-So was there really any major reason for it to be called on the host(often considered temp, ISO env) system.
+So was there really any major reason for it to be called on the host (often considered temp, ISO env) system.
+This is obviously not to say systemd bad, just that it should only be used within the target and not the host.
 
 ---
 
@@ -60,7 +64,8 @@ So was there really any major reason for it to be called on the host(often consi
 - **File:** `lib/installer.py` (all `arch-chroot` invocations)
 - **Status:**   Fixed : `_arch_chroot_cmd` property omits `-S` when `systemd-run`
   is not available. All hardcoded `arch-chroot -S` literals replaced with
-  `*self._arch_chroot_cmd`.
+  `*self._arch_chroot_cmd` — covers `run_command`, `set_user_password`,
+  `snapper` config, `grub-install`, and `run_custom_user_commands`.
 
 ### 6. `systemctl --root=` enable/disable on non-systemd hosts
 - **File:** `lib/installer.py` (`enable_service`, `disable_service`)
@@ -86,27 +91,42 @@ Added to `lib/utils/env.py`:
 
 | Function | Purpose |
 |----------|---------|
-| `ensure_pacman_configured()` | Writes a default mirrorlist and fetches `pacman.conf` from upstream when no repos are configured (e.g. Alpine). |
-| `ensure_keyring_initialized()` | Downloads `archlinux-keyring`, extracts it, and runs `pacman-key --init --populate` when the keyring is absent. |
+| `ensure_pacman_configured()` | Fetches `pacman.conf` from upstream Arch GitLab and a live mirrorlist from `archlinux.org/mirrors/status/json/` when no repo sections exist in `/etc/pacman.conf`. Relaxes `SigLevel = Never` and removes `DownloadUser` so it works before the keyring and `alpm` user exist. |
+| `ensure_keyring_initialized()` | Scrapes `geo.mirror.pkgbuild.com` for the latest `archlinux-keyring` `.zst`, decompresses with `zstd`, extracts with `tarfile`, copies keys to `/usr/share/pacman/keyrings/`, then runs `pacman-key --init --populate archlinux`. No-op if the keyring is already present. |
 
-Called from `__init__._prepare()` before `pacman -Sy` so that pacman works on any host, and remove the update altogether when not on an arch system.
+Called from `__init__._prepare()` before any `pacman` invocation so that pacman works on any host.
 
-`_deps_available()` in `__init__` short-circuits the bootstrap when `python-pyparted`
-is already importable (e.g. Alpine provides `py3-parted` ...).
+`_deps_available()` in `__init__` checks if `parted` is already importable and short-circuits the pacman bootstrap entirely — e.g. Alpine ships `py3-parted` so no pacman install step is needed. `_prepare()` also skips the bootstrap on non-Arch hosts for the same reason.
 
 ---
 
 ## Other portability fixes
 
+### Localization (`lib/localization/utils.py`)
+
+| Function | Fallback chain |
+|----------|---------------|
+| `list_keyboard_languages()` | `localectl --no-pager list-keymaps` → fetch keymap names from kbd GitHub tree (`api.github.com/repos/legionus/kbd`) |
+| `list_x11_keyboard_languages()` | `localectl --no-pager list-x11-keymap-layouts` → fetch layout names from xkeyboard-config GitLab (`base.lst`) |
+| `get_kb_layout()` | `localectl --no-pager status` → read `KEYMAP=` from `/etc/vconsole.conf` |
+| `set_kb_layout()` | `localectl set-keymap` → `loadkeys` |
+| `list_timezones()` | `timedatectl --no-pager list-timezones` → recursive scan of `/usr/share/zoneinfo` (skipping meta-files) |
+| `list_locales()` | `/usr/share/i18n/SUPPORTED` → `/etc/locale.gen` → fetch upstream glibc `localedata/SUPPORTED` from GitHub |
+| `list_console_fonts()` | Fully rewritten: fetches font names from kbd GitHub tree (`data/consolefonts/`); strips `.psfu.gz`, `.psf.gz`, `.gz`, `.psfu`, `.psf` suffixes; returns `[]` on any network error |
+
+### Other
+
 | Fix | File | Detail |
 |-----|------|--------|
-| `localectl` fallback | `lib/localization/utils.py` | All calls fall back to keymap file scan / vconsole.conf read when `localectl` is absent |
-| `timedatectl list-timezones` fallback | `lib/localization/utils.py` | Falls back to `/usr/share/zoneinfo` scan |
-| `list_locales()` fallback | `lib/localization/utils.py` | Falls back to `/etc/locale.gen`, then fetch from glibc source as fallback (bootstrap) |
 | `_pid_exists` portability | `lib/general.py` | Replaced `ps --no-headers` (procps-specific) with `os.kill(pid, 0)` |
-| `crypt.py` musl support | `lib/authentication/crypt.py` | Portable library discovery; correct `crypt_gensalt` symbol check via `lib['name']` (not `hasattr`); SHA-512 fallback when yescrypt is unsupported |
+| `crypt.py` musl support | `lib/authentication/crypt.py` | Portable library discovery; correct `crypt_gensalt` symbol check via `lib['name']` (not `hasattr`); SHA-512 fallback when yescrypt is unsupported; fixed sentinel check — musl falls through to DES (not `*0`/`*1`) for unknown algorithms, so the fallback now also triggers when the result doesn't start with `$y$` |
+| Mirror quality filtering | `lib/pm/mirrors.py` | `get_status_by_region` now filters out mirrors with `score ≥ 2.0` or `delay > 3600 s`, caps results at `TOP_N = 10`, and only prints speed-test progress on first call (cached thereafter). `speed_sort` is always `True` now since results are cached. |
+| `ALP` inline comments | `ALP` | Restructured `apk add` to use a heredoc piped through `awk '{print $1}'`, allowing `# comment` annotations next to each package |
+| `ALP` ca-certificates | `ALP` | Added `ca-certificates` to the package list so HTTPS fetches (mirror list, keyring) work out of the box on Alpine |
 
 ---
 
-Clean up canonical sources and paths into a single file
+Clean up canonical sources:
+
+
 
