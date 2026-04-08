@@ -174,10 +174,7 @@ def _fetch_keyring_package_url() -> str:
 
 def _extract_zst(zst_path: Path, dest: Path) -> None:
 	"""Decompress a .tar.zst archive into dest."""
-	tar_path = dest / 'archive.tar'
-	with open(tar_path, 'wb') as tar_out:
-		subprocess.run(['zstd', '-d', '-c', str(zst_path)], stdout=tar_out, check=True)
-	with tarfile.open(tar_path) as tar:
+	with tarfile.open(zst_path) as tar:
 		tar.extractall(dest)
 
 

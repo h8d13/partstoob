@@ -1,4 +1,6 @@
+import json
 import shutil
+import urllib.request
 from pathlib import Path
 
 from archinstoo.lib.exceptions import ServiceException, SysCallError
@@ -9,8 +11,6 @@ from archinstoo.lib.utils.env import Os
 
 def _list_keymaps_from_kbd_git() -> list[str]:
 	"""Fetch console keymap names from the upstream kbd git tree."""
-	import json
-	import urllib.request
 
 	url = 'https://api.github.com/repos/legionus/kbd/git/trees/master?recursive=1'
 	req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json'})
@@ -48,8 +48,6 @@ def verify_keyboard_layout(layout: str) -> bool:
 
 def _list_x11_layouts_from_xkb_git() -> list[str]:
 	"""Fetch X11 layout names from upstream xkeyboard-config."""
-	import urllib.request
-
 	url = 'https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/raw/master/rules/base.lst'
 	with urllib.request.urlopen(url, timeout=10) as resp:
 		text = resp.read().decode('utf-8')
@@ -143,9 +141,6 @@ def set_kb_layout(locale: str) -> bool:
 
 def list_console_fonts() -> list[str]:
 	try:
-		import json
-		import urllib.request
-
 		url = 'https://api.github.com/repos/legionus/kbd/git/trees/master?recursive=1'
 		req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json'})
 		with urllib.request.urlopen(req, timeout=10) as resp:
@@ -192,8 +187,6 @@ def list_locales() -> list[str]:
 	# Last resort: fetch upstream glibc SUPPORTED list
 	# Source format: "en_US.UTF-8/UTF-8 \" — convert to "en_US.UTF-8 UTF-8"
 	try:
-		import urllib.request
-
 		url = 'https://raw.githubusercontent.com/bminor/glibc/master/localedata/SUPPORTED'
 		with urllib.request.urlopen(url, timeout=5) as resp:
 			text = resp.read().decode('utf-8')

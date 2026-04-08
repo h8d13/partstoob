@@ -425,5 +425,7 @@ def _pid_exists(pid: int) -> bool:
 	try:
 		os.kill(pid, 0)
 		return True
+	except PermissionError:
+		return True  # process exists, we just can't signal it
 	except OSError:
 		return False

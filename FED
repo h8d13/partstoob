@@ -6,7 +6,6 @@
 # shellcheck disable=SC2046
 dnf install --assumeyes --setopt=install_weak_deps=False $(awk '{print $1}' << 'PKGS'
     ca-certificates             # https support
-    zstd                        # keyring extraction
     python3                     # runtime
     python3-pip                 # pip
     python3-devel               # python headers

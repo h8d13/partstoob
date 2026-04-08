@@ -22,7 +22,6 @@
 
 apk add --no-cache $(awk '{print $1}' << 'EOF'
     ca-certificates         # for https handshakes
-    zstd                    # initial keyring
     eudev                   # device/udev
     py3-pip                 # pip no pyparted
     python3-dev             # python headers
