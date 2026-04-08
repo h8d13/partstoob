@@ -1,5 +1,6 @@
 import ctypes
 import ctypes.util
+import glob
 import secrets
 import string
 from typing import cast
@@ -10,22 +11,36 @@ from archinstoo.lib.output import debug
 SALT_CHARS = string.ascii_letters + string.digits + './'
 
 
-def _load_crypt_lib() -> ctypes.CDLL:
-	"""Load a library containing crypt(). Tries libcrypt first, then libc."""
-	# glibc systems (including NixOS) have crypt in libcrypt
-	for name in ('crypt', 'libcrypt.so.2', 'libcrypt.so.1'):
-		try:
-			path = ctypes.util.find_library(name) or name
-			lib = ctypes.CDLL(path)
-			lib.crypt  # check symbol exists
-			return lib
-		except (OSError, AttributeError):
-			continue
+def _try_load_crypt(path: str) -> ctypes.CDLL | None:
+	"""Try to load a library and verify crypt() symbol exists."""
+	try:
+		lib = ctypes.CDLL(path)
+		# Actually verify the symbol by looking it up
+		lib['crypt']
+		return lib
+	except (OSError, KeyError):
+		return None
 
-	# musl systems have crypt in libc
+
+def _load_crypt_lib() -> ctypes.CDLL:
+	"""Load a library containing crypt()."""
+	# Standard library names
+	for name in ('crypt', 'libcrypt.so.2', 'libcrypt.so.1'):
+		path = ctypes.util.find_library(name)
+		if path and (lib := _try_load_crypt(path)):
+			return lib
+		if lib := _try_load_crypt(name):
+			return lib
+
+	# NixOS: search /nix/store for libxcrypt
+	for path in glob.glob('/nix/store/*-libxcrypt-*/lib/libcrypt.so*'):
+		if lib := _try_load_crypt(path):
+			return lib
+
+	# musl: crypt in libc
 	libc_path = ctypes.util.find_library('c')
-	if libc_path:
-		return ctypes.CDLL(libc_path)
+	if libc_path and (lib := _try_load_crypt(libc_path)):
+		return lib
 
 	raise OSError('Could not find crypt()')
 
