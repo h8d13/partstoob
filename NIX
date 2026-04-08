@@ -9,6 +9,7 @@ pkgs.mkShell {
     # Core
     pacman
     arch-install-scripts
+    git
 
     # Python + parted
     python3
@@ -24,8 +25,10 @@ pkgs.mkShell {
     lvm2
 
     # Utils
+    coreutils
     util-linux
     pciutils
+    kbd
     parted
     zstd
     libxcrypt
