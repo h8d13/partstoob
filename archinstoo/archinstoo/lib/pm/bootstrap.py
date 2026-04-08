@@ -13,6 +13,7 @@ from archinstoo.lib.output import info
 
 _PACMAN_CONF = Path('/etc/pacman.conf')
 _PACMAN_D = Path('/etc/pacman.d')
+_PACMAN_DB = Path('/var/lib/pacman')
 _MIRRORLIST = _PACMAN_D / 'mirrorlist'
 _KEYRING_DIR = Path('/usr/share/pacman/keyrings')
 _ARCHLINUX_KEYRING = _KEYRING_DIR / 'archlinux.gpg'
@@ -122,6 +123,7 @@ def pacman_conf() -> None:
 	info('Configuring pacman for non-Arch host...')
 
 	_PACMAN_D.mkdir(parents=True, exist_ok=True)
+	_PACMAN_DB.mkdir(parents=True, exist_ok=True)
 	info(f'Writing {_MIRRORLIST}...')
 	_MIRRORLIST.write_text(_fetch_mirrorlist())
 
