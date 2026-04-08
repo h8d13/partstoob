@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 # shellcheck disable=SC1091,SC2154
 # help / list / size / mirrors
 # do not need root but we append it for most features
