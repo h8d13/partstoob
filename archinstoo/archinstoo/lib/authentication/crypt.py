@@ -16,7 +16,7 @@ def _try_load_crypt(path: str) -> ctypes.CDLL | None:
 	try:
 		lib = ctypes.CDLL(path)
 		# Actually verify the symbol by looking it up
-		lib['crypt']
+		_ = lib['crypt']
 		return lib
 	except (OSError, KeyError):
 		return None
