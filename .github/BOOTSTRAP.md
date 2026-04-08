@@ -2,7 +2,7 @@
 
 Goal: run archinstoo from **any Linux distro** as the host — Alpine, Debian, Fedora, Arch ISO, whatever.
 
-The host is treated as a throwaway bootstrap environment, which is a bit unust as being able to run an app anywhere is important. 
+The host is treated as a throwaway bootstrap environment, which is a bit unjust as being able to run an app anywhere is important. 
 The target is what matters, but how you run a program is just as important.
 Systemd dep removal is a means to that end, not the goal itself.
 
