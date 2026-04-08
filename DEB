@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# Debian Trixie (stable) bootstrap for archinstoo
+# Run as root from a minimal Debian install or live environment
+
+apt-get update
+
+# shellcheck disable=SC2046
+apt-get install --no-install-recommends -y $(awk '{print $1}' << 'EOF'
+    ca-certificates             # https support
+    zstd                        # keyring extraction
+    python3                     # runtime
+    python3-pip                 # pip (only if py3-parted not enough)
+    python3-dev                 # python headers
+    python3-parted              # pyparted available natively, no pip needed
+    libparted-dev               # libparted headers
+    gcc                         # c compiler
+    pacman-package-manager      # arch package manager
+    arch-install-scripts        # pacstrap, genfstab, etc
+    coreutils                   # gnu core utils
+    util-linux                  # lsblk, blkid, etc
+    pciutils                    # lspci
+    tzdata                      # timezone data
+    dosfstools                  # mkfs.fat
+    dmsetup                     # dm-* devices
+    e2fsprogs                   # mkfs.ext4
+    cryptsetup-bin              # luks
+    lvm2
+    btrfs-progs
+    f2fs-tools
+    xfsprogs                    # mkfs.xfs
+EOF
+)

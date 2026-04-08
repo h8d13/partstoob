@@ -1,0 +1,9 @@
+FROM debian:trixie-slim
+
+COPY DEB .
+RUN sh DEB
+
+COPY . .
+
+ENTRYPOINT ["./RUN"]
+CMD ["--help"]

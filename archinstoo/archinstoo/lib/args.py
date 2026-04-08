@@ -209,7 +209,7 @@ class ArchConfigHandler:
 				item.unlink()
 
 	def _define_arguments(self) -> ArgumentParser:
-		parser = ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=False)
+		parser = ArgumentParser(prog='archinstoo', formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=False)
 		parser.add_argument(
 			'--script',
 			nargs='?',

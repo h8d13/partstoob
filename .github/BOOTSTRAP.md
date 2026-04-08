@@ -1,11 +1,12 @@
-# Systemd Dependency Removal
+# Cross-Distro Host Support
 
-Some distros provide `arch-install-scripts`, `pacman` and related tools.
+Goal: run archinstoo from **any Linux distro** as the host — Alpine, Debian, Fedora, Arch ISO, whatever.
 
-Goal: build and run archinstoo from **any Linux distro** (Alpine, Debian, Fedora, …).
+The host is treated as a throwaway bootstrap environment. The target is what matters.
+Systemd dep removal is a means to that end, not the goal itself.
 
 Calls that operate on the **target** system (chroot / `--root=`) are intentional and must stay.
-Only **host-side** systemd calls need to be eliminated → Inside chroot is fine.
+Only **host-side** tool dependencies need to be eliminated or given fallbacks → inside chroot is always fine.
 
 The idea is to test more host-to-target (h2t) installs without ISOs 
 (as ISO-testing seems to be standard, but is bad practice since it's only a tmp envir, with a lot of tools added, easy to lose track of which tool did what, pr discard proper clean-up steps)
