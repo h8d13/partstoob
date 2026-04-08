@@ -1,6 +1,6 @@
 # partstoob
 
-Experimental branch porting `archinstoo` to run from **any Linux host** (not just Arch ISOs).
+Experimental ports `archinstoo` to run from **any Linux host** (not just Arch ISOs).
 
 | Host | `arch-install-scripts` | `pacman` | Script | Tested |
 |------|------------------------|----------|--------|--------|
@@ -17,6 +17,7 @@ util-linux
 awk
 bash
 asciidoc
+make
 
 ```shell
 git clone --depth 1 https://gitlab.archlinux.org/archlinux/arch-install-scripts.git
