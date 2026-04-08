@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .application import ApplicationConfiguration, Audio, AudioConfiguration, BluetoothConfiguration, PrintServiceConfiguration
 from .bootloader import Bootloader
 from .device import (
