@@ -169,8 +169,6 @@ def _prepare() -> int:
 	if is_venv() or not is_root():
 		return 0
 
-	non_arch_host = Os.running_from_host() and not Os.running_from_arch()
-
 	# check online (or offline requested) before trying to fetch packages
 	if '--offline' not in sys.argv:
 		if rc := _check_online():
@@ -178,10 +176,14 @@ def _prepare() -> int:
 		# note indent fully offlines installs should be possible
 		# instead of importing full handler use sys.argv directly
 		try:
-			ensure_pacman_configured()
-			ensure_keyring_initialized()
-			# non-Arch hosts have deps pre-installed via host package manager
-			if not non_arch_host and (rc := _bootstrap()):
+			# non-Arch hosts need pacman + keyring bootstrapped from scratch
+			if Os.running_from_host() and not Os.running_from_arch():
+				ensure_pacman_configured()
+				ensure_keyring_initialized()
+			info('Fetching db...')
+			Pacman.run('-Sy', peek_output=True)
+			# non-Arch hosts have python deps pre-installed via host package manager
+			if not (Os.running_from_host() and not Os.running_from_arch()) and (rc := _bootstrap()):
 				return rc
 		except Exception as e:
 			error('Failed to prepare app.')
