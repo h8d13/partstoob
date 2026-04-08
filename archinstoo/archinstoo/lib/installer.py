@@ -703,7 +703,7 @@ class Installer:
 			info(f'Enabling service {service}')
 
 			try:
-				if shutil.which('systemctl'):
+				if shutil.which('systemctl') and not Os.running_from_host():
 					SysCommand(f'systemctl --root={self.target} enable {service}')
 				else:
 					self.run_command(f'systemctl enable {service}')
