@@ -2,7 +2,7 @@
 
 Goal: run `archinstoo` from **any Linux distro** as the host  Alpine, Debian, Fedora, Arch ISO, whatever, a shell and 5 minutes.
 
-The host is treated as a throwaway bootstrap environment, which is a bit unjust as being able to run an app anywhere is important. 
+The ISO is often treated as a throwaway bootstrap environment, which is a bit unjust as being able to run an app anywhere is important, as well as being able to run an install cleanly from a host.
 The target is what matters, but how you even run a program, or see its traces, is just as primordial.
 Systemd dep removal is a means to that end, not the goal itself.
 
