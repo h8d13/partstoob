@@ -221,7 +221,7 @@ class Installer:
 		else:
 			info('Skipping reflector (offline mode, non-x86_64, or non-systemd host)')
 
-		if not self._args.skip_wkd and shutil.which('systemctl'):
+		if not self._args.skip_wkd and shutil.which('systemctl') and not Os.running_from_host():
 			info(tr('Waiting for Arch Linux keyring sync...'))
 			# Wait for the timer to kick in
 			while self._service_started('archlinux-keyring-wkd-sync.timer') is None:
