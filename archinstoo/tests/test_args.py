@@ -130,7 +130,7 @@ def test_config_file_parsing(
 	arch_config.profile_config = None
 
 	assert arch_config == ArchConfig(
-		script='test_script',
+		script='guided',
 		app_config=ApplicationConfiguration(
 			bluetooth_config=BluetoothConfiguration(enabled=True),
 			audio_config=AudioConfiguration(audio=Audio.PIPEWIRE),
@@ -143,11 +143,11 @@ def test_config_file_parsing(
 			security_config=SecurityConfiguration(tools=[Security.APPARMOR, Security.FIREJAIL]),
 		),
 		auth_config=AuthenticationConfiguration(
-			root_enc_password=Password(enc_password='password_hash'),
+			root_enc_password=Password(enc_password='__RHASH__'),
 			users=[
 				User(
-					username='user_name',
-					password=Password(enc_password='password_hash'),
+					username='testuser',
+					password=Password(enc_password='__UHASH__'),
 					elev=True,
 					groups=['wheel', 'adm', 'log'],
 					shell=Shell.FISH,
