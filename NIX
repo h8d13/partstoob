@@ -26,6 +26,5 @@ pkgs.mkShell {
     pciutils
     parted
     zstd
-    libxcrypt
   ];
 }
