@@ -1,6 +1,6 @@
 # partstoob
 
-Experimental branch porting archinstoo to run from **any Linux host** (not just Arch ISOs).
+Experimental branch porting `archinstoo` to run from **any Linux host** (not just Arch ISOs).
 
 | Host | `arch-install-scripts` | `pacman` | Script | Tested |
 |------|------------------------|----------|--------|--------|
