@@ -12,8 +12,7 @@ pkgs.mkShell {
     git
 
     # Python + parted
-    python3
-    python3Packages.pyparted
+    (python3.withPackages (ps: [ ps.pyparted ]))
 
     # Filesystem tools
     dosfstools
