@@ -29,5 +29,6 @@ pkgs.mkShell {
     parted
     zstd
     libxcrypt
+    tzdata
   ];
 }
