@@ -28,54 +28,54 @@ So was there really any major reason for it to be called on the host(often consi
 
 ---
 
-## Host-side removals — status
+## Host-side removals : status
 
-### 1. `timedatectl show` — NTP sync polling
+### 1. `timedatectl show` : NTP sync polling
 - **File:** `lib/installer.py` (`_verify_service_stop`)
-- **Status:** ✅ Guarded — skipped when `timedatectl` is not on PATH.
+- **Status:**   Guarded : skipped when `timedatectl` is not on PATH.
 - **Long-term:** Replace with `/proc/net/adjtimex` read or a simple clock sanity check;
   the exact NTP sync state is not required, only a "time looks sane" guard.
 
-### 2. `systemctl show` — host service state polling
+### 2. `systemctl show` : host service state polling
 - **File:** `lib/installer.py` (`_service_started`, `_service_state`)
 - **Callers:** reflector wait, archlinux-keyring-wkd-sync wait
-- **Status:** ✅ Guarded — both return early (`'dead'`) when `systemctl` is not on PATH.
+- **Status:**   Guarded : both return early (`'dead'`) when `systemctl` is not on PATH.
 - **Long-term:** Replace with filesystem artifact checks:
   - reflector → watch `/var/lib/reflector/mirrorlist` mtime
   - keyring sync → check gnupg trust DB mtime in `/etc/pacman.d/gnupg/`
   - similar pattern to how we bootsrap `pacman` files 
 
-### 3. `systemctl is-active espeakup.service` — accessibility detection
+### 3. `systemctl is-active espeakup.service` : accessibility detection
 - **File:** `lib/installer.py` (`accessibility_tools_in_use()`)
-- **Status:** ✅ Guarded — returns `False` when `systemctl` is not on PATH.
+- **Status:**   Guarded : returns `False` when `systemctl` is not on PATH.
 - **Long-term:** Replace with `/proc/*/comm` scan for `espeakup` process.
 
-### 4. `systemd-detect-virt` — VM detection
+### 4. `systemd-detect-virt` : VM detection
 - **File:** `lib/hardware.py` (`SysInfo.is_vm`)
-- **Status:** ✅ Replaced — falls back to DMI vendor string
+- **Status:**   Replaced : falls back to DMI vendor string
   (`/sys/class/dmi/id/sys_vendor`) and `/sys/hypervisor/type` when
   `systemd-detect-virt` is not on PATH.
 
-### 5. `arch-chroot -S` — systemd-run dependency
+### 5. `arch-chroot -S` : systemd-run dependency
 - **File:** `lib/installer.py` (all `arch-chroot` invocations)
-- **Status:** ✅ Fixed — `_arch_chroot_cmd` property omits `-S` when `systemd-run`
+- **Status:**   Fixed : `_arch_chroot_cmd` property omits `-S` when `systemd-run`
   is not available. All hardcoded `arch-chroot -S` literals replaced with
   `*self._arch_chroot_cmd`.
 
 ### 6. `systemctl --root=` enable/disable on non-systemd hosts
 - **File:** `lib/installer.py` (`enable_service`, `disable_service`)
-- **Status:** ✅ Fixed — falls back to running `systemctl enable/disable` inside
+- **Status:**   Fixed : falls back to running `systemctl enable/disable` inside
   the chroot when the host `systemctl` is absent.
 
-### 7. `systemd.journal` — host journal logging
+### 7. `systemd.journal` : host journal logging
 - **File:** `lib/output.py` (`Journald.log`)
-- **Status:** ✅ Removed — `Journald` class deleted, call site removed.
+- **Status:**   Removed : `Journald` class deleted, call site removed.
   `systemd_python` dep removed from `pyproject.toml`, both `PKGBUILD` files,
   and `nvchecker/nvchecker.toml`.
 
-### 8. `installed_package('systemd')` — host systemd version probe
+### 8. `installed_package('systemd')` : host systemd version probe
 - **File:** `lib/installer.py` (bootctl version gate)
-- **Status:** ✅ Fixed — now runs `bootctl --version` inside the chroot and parses
+- **Status:**   Fixed : now runs `bootctl --version` inside the chroot and parses
   the version from its output. No host pacman query. Import removed.
 
 ---
