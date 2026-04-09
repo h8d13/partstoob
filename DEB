@@ -15,6 +15,7 @@ apt-get install --no-install-recommends -y $(awk '{print $1}' << 'EOF'
     libparted-dev               # libparted headers
     gcc                         # c compiler
     pacman-package-manager      # arch package manager
+    makepkg                     # pacman-key depends on makepkg utils
     arch-install-scripts        # pacstrap, genfstab, etc
     coreutils                   # gnu core utils
     util-linux                  # lsblk, blkid, etc

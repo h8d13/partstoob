@@ -775,10 +775,10 @@ class Installer:
 
 	@property
 	def _arch_chroot_cmd(self) -> list[str]:
-		"""Return the arch-chroot base command, omitting -S when systemd-run is unavailable."""
-		if shutil.which('systemd-run'):
-			return ['arch-chroot', '-S', str(self.target)]
-		return ['arch-chroot', str(self.target)]
+		"""Return the arch-chroot base command, omitting -S on non-Arch hosts."""
+		if Os.running_from_host() and not Os.running_from_arch():
+			return ['arch-chroot', str(self.target)]
+		return ['arch-chroot', '-S', str(self.target)]
 
 	def run_command(self, cmd: str, peek_output: bool = False) -> SysCommand:
 		if self.target == Path('/'):
