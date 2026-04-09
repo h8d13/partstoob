@@ -827,13 +827,6 @@ class Installer:
 			for psk in psk_files:
 				shutil.copy2(psk, f'{self.target}/var/lib/iwd/{os.path.basename(psk)}')
 
-		# Enable systemd-resolved by (forcefully) setting a symlink
-		# For further details see  https://wiki.archlinux.org/title/Systemd-resolved#DNS
-		resolv_config_path = self.target / 'etc/resolv.conf'
-		if resolv_config_path.exists():
-			os.unlink(resolv_config_path)
-		os.symlink('/run/systemd/resolve/stub-resolv.conf', resolv_config_path)
-
 		# Copy (if any) systemd-networkd config files
 		if netconfigurations := glob.glob('/etc/systemd/network/*'):
 			if not os.path.isdir(f'{self.target}/etc/systemd/network/'):
@@ -841,6 +834,12 @@ class Installer:
 
 			for netconf_file in netconfigurations:
 				shutil.copy2(netconf_file, f'{self.target}/etc/systemd/network/{os.path.basename(netconf_file)}')
+
+			# Set up resolv.conf symlink for systemd-resolved
+			resolv_config_path = self.target / 'etc/resolv.conf'
+			if resolv_config_path.exists() or resolv_config_path.is_symlink():
+				os.unlink(resolv_config_path)
+			os.symlink('/run/systemd/resolve/stub-resolv.conf', resolv_config_path)
 
 			if enable_services:
 				# If we haven't installed the base yet (function called pre-maturely)
@@ -853,6 +852,16 @@ class Installer:
 				# Otherwise, we can go ahead and enable the services
 				else:
 					self.enable_service(['systemd-networkd', 'systemd-resolved'])
+		else:
+			# No networkd config to copy - just copy resolv.conf directly
+			resolv_src = Path('/etc/resolv.conf')
+			resolv_dst = self.target / 'etc/resolv.conf'
+			if resolv_src.exists():
+				# Read actual content (resolve symlink)
+				content = resolv_src.read_text()
+				if resolv_dst.exists() or resolv_dst.is_symlink():
+					os.unlink(resolv_dst)
+				resolv_dst.write_text(content)
 
 		return True
 
