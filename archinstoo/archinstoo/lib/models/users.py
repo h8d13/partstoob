@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum, StrEnum, auto
 from typing import NotRequired, Self, TypedDict, override
 
-from archinstoo.lib.authentication.crypt import crypt_sha512
+from archinstoo.lib.authentication.crypt import crypt_yescrypt
 from archinstoo.lib.translationhandler import tr
 
 
@@ -123,7 +123,7 @@ class Password:
 		enc_password: str | None = None,
 	):
 		if plaintext:
-			enc_password = crypt_sha512(plaintext)
+			enc_password = crypt_yescrypt(plaintext)
 
 		if not plaintext and not enc_password:
 			raise ValueError('Either plaintext or enc_password must be provided')
