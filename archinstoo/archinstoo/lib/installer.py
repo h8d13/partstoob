@@ -185,20 +185,31 @@ class Installer:
 		if not shutil.which('timedatectl'):
 			debug('timedatectl not available, skipping NTP sync check')
 		elif not self._args.skip_ntp:
-			info(tr('Waiting for NTP time synchronization...'))
+			# Check if NTP is even enabled before waiting
+			ntp_enabled = SysCommand('timedatectl show --property=NTP --value').decode()
+			if not ntp_enabled or ntp_enabled.strip() != 'yes':
+				debug('NTP not enabled on host, skipping sync check')
+			else:
+				info(tr('Waiting for NTP time synchronization...'))
 
-			started_wait = time.time()
-			notified = False
-			while True:
-				if not notified and time.time() - started_wait > 5:
-					notified = True
-					warn(tr('NTP sync taking longer than expected, still waiting...'))
+				started_wait = time.time()
+				notified = False
+				max_wait = 30
+				while True:
+					elapsed = time.time() - started_wait
+					if not notified and elapsed > 5:
+						notified = True
+						warn(tr('NTP sync taking longer than expected, still waiting...'))
 
-				time_val = SysCommand('timedatectl show --property=NTPSynchronized --value').decode()
-				if time_val and time_val.strip() == 'yes':
-					info(tr('NTP time synchronization completed'))
-					break
-				time.sleep(1)
+					if elapsed > max_wait:
+						warn('NTP sync timed out, continuing anyway...')
+						break
+
+					time_val = SysCommand('timedatectl show --property=NTPSynchronized --value').decode()
+					if time_val and time_val.strip() == 'yes':
+						info(tr('NTP time synchronization completed'))
+						break
+					time.sleep(1)
 		else:
 			info(tr('Skipping NTP time sync (may cause issues if system time is incorrect)'))
 
