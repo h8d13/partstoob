@@ -121,17 +121,19 @@ def pacman_conf() -> None:
 	Needed when running from a non-Arch host (Alpine, Debian, Fedora, …).
 	No-op if repos are already configured.
 	"""
-	if _has_repos_configured():
-		return
-
-	info('Configuring pacman for non-Arch host...')
-
+	# Always ensure directories exist (some distros ship pacman.conf but no dirs)
 	_PACMAN_D.mkdir(parents=True, exist_ok=True)
 	_PACMAN_GNUPG.mkdir(parents=True, exist_ok=True)
 	_PACMAN_HOOKS.mkdir(parents=True, exist_ok=True)
 	_PACMAN_DB.mkdir(parents=True, exist_ok=True)
 	_PACMAN_CACHE.mkdir(parents=True, exist_ok=True)
 	_PACMAN_LOG.mkdir(parents=True, exist_ok=True)
+
+	if _has_repos_configured():
+		return
+
+	info('Configuring pacman for non-Arch host...')
+
 	info(f'Writing {_MIRRORLIST}...')
 	_MIRRORLIST.write_text(_fetch_mirrorlist())
 
