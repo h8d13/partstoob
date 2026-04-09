@@ -90,7 +90,7 @@ def keyring_init() -> None:
 	Downloads and extracts archlinux-keyring when running from a non-Arch host.
 	No-op if the keyring is already installed.
 	"""
-	if _ARCHLINUX_KEYRING.exists():
+	if _ARCHLINUX_KEYRING.exists() and (_PACMAN_GNUPG / 'trustdb.gpg').exists():
 		return
 
 	info('Setting up Arch Linux keyring (non-Arch host)...')
