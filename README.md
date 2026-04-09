@@ -5,7 +5,7 @@ Experimental ports `archinstoo` to run from **any Linux host** (not just Arch IS
 | Host | `arch-install-scripts` | `pacman` | Script | Tested |
 |------|------------------------|----------|--------|--------|
 | Alpine | ✅ | ✅ | [ALP](./ALP) | ✅ |
-| Debian | ✅ | ✅ | [DEB](./DEB) | ⚠️ |
+| Debian | ✅ | ✅ | [DEB](./DEB) | ✅ |
 | Fedora | ✅ | ✅ | [FED](./FED) | ⚠️ |
 | NixOS | ✅ | ✅ | [NIX](./NIX) | ✅ |
 | openSUSE | ✅ | ✅ | - | - |
