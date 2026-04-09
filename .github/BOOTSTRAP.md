@@ -41,9 +41,9 @@ The rest of this document is how I've found a back-up for each issue:
 
 ### 1. `timedatectl show` : NTP sync polling
 - **File:** `lib/installer.py` (`_verify_service_stop`)
-- **Status:**   Guarded : skipped when `timedatectl` is not on PATH.
-- **Long-term:** Replace with `/proc/net/adjtimex` read or a simple clock sanity check;
-  the exact NTP sync state is not required, only a "time looks sane" guard.
+- **Status:** Fixed : skipped when `timedatectl` is not on PATH, also checks if NTP
+  is actually enabled before waiting, and has a 30s timeout to prevent infinite loops
+  on hosts where NTP exists but isn't syncing.
 
 ### 2. `systemctl show` : host service state polling
 - **File:** `lib/installer.py` (`_service_started`, `_service_state`)
@@ -67,9 +67,10 @@ The rest of this document is how I've found a back-up for each issue:
 
 ### 5. `arch-chroot -S` : systemd-run dependency
 - **File:** `lib/installer.py` (all `arch-chroot` invocations)
-- **Status:**   Fixed : `_arch_chroot_cmd` property omits `-S` when `systemd-run`
-  is not available. All hardcoded `arch-chroot -S` literals replaced with
-  `*self._arch_chroot_cmd`  covers `run_command`, `set_user_password`,
+- **Status:** Fixed : `_arch_chroot_cmd` property omits `-S` on non-Arch hosts
+  (`Os.running_from_host() and not Os.running_from_arch()`). Debian's `arch-chroot`
+  doesn't support `-S`. All hardcoded `arch-chroot -S` literals replaced with
+  `*self._arch_chroot_cmd` — covers `run_command`, `set_user_password`,
   `snapper` config, `grub-install`, and `run_custom_user_commands`.
 
 ### 6. `systemctl --root=` enable/disable on non-systemd hosts
@@ -98,7 +99,7 @@ Added to `lib/pm/bootstrap.py`:
 
 | Function | Purpose |
 |----------|---------|
-| `keyring_init()` | Scrapes `geo.mirror.pkgbuild.com` for the latest `archlinux-keyring` `.zst`, decompresses via `zstd -d -c` subprocess into a temp `.tar`, extracts with `tarfile`, copies keys to `/usr/share/pacman/keyrings/`, then runs `pacman-key --init --populate archlinux`. No-op if the keyring is already present. |
+| `keyring_init()` | Scrapes `geo.mirror.pkgbuild.com` for the latest `archlinux-keyring` `.zst`, decompresses via `zstd -d -c` subprocess into a temp `.tar`, extracts with `tarfile`, copies keys to `/usr/share/pacman/keyrings/`, then runs `pacman-key --init --populate archlinux`. No-op if keyring AND trustdb (`/etc/pacman.d/gnupg/trustdb.gpg`) are already present — Debian ships keyring files but doesn't init the trustdb. |
 | `pacman_conf()` | Fetches `pacman.conf` from upstream Arch GitLab and a live mirrorlist from `archlinux.org/mirrors/status/json/` when no repo sections exist in `/etc/pacman.conf`. Removes `DownloadUser` so it works on non-Arch hosts. No-op if repos are already configured. |
 
 Called from `__init__._prepare()` in order  `keyring_init()` first, then `pacman_conf()`  so signature checking works at its upstream default (no `SigLevel = Never` needed).
@@ -126,13 +127,16 @@ Called from `__init__._prepare()` in order  `keyring_init()` first, then `pacman
 | Fix | File | Detail |
 |-----|------|--------|
 | `_pid_exists` portability | `lib/general.py` | Replaced `ps --no-headers` (procps-specific) with `os.kill(pid, 0)` |
-| `crypt.py` musl support | `lib/authentication/crypt.py` | Portable library discovery; correct `crypt_gensalt` symbol check via `lib['name']` (not `hasattr`); SHA-512 fallback when yescrypt is unsupported; fixed sentinel check  musl falls through to DES (not `*0`/`*1`) for unknown algorithms, so the fallback now also triggers when the result doesn't start with `$y$` |
+| `crypt.py` musl/NixOS support | `lib/authentication/crypt.py` | Portable library discovery including `/nix/store/*-libxcrypt-*/lib/libcrypt.so*` for NixOS; correct `crypt_gensalt` symbol check via `lib['name']` (not `hasattr`); SHA-512 fallback when yescrypt is unsupported; fixed sentinel check — musl falls through to DES (not `*0`/`*1`) for unknown algorithms, so the fallback now also triggers when the result doesn't start with `$y$` |
 | Mirror quality filtering | `lib/pm/mirrors.py` | `get_status_by_region` now filters out mirrors with `score ≥ 2.0` or `delay > 3600 s`, caps results at `TOP_N = 10`, and only prints speed-test progress on first call (cached thereafter). `speed_sort` is always `True` now since results are cached. |
 
 ---
 
-Clean up canonical sources:
+### Network config (`lib/installer.py`)
 
-- Check for copy from ISO option is it safe in case of no-ops (no systemd host to copy from)
+| Fix | Detail |
+|-----|--------|
+| `copy_iso_network_config()` | Now handles non-Arch hosts: if no `/etc/systemd/network/*` files exist to copy, falls back to copying the host's `/etc/resolv.conf` content directly instead of creating a broken symlink to systemd-resolved. |
+
 
 
