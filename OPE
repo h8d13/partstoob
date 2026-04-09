@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# openSUSE Tumbleweed bootstrap for archinstoo
+# Run as root from a minimal openSUSE install or live environment
+
+# Add system:packagemanager repo for pacman
+zypper addrepo -f https://download.opensuse.org/repositories/system:packagemanager/openSUSE_Tumbleweed/system:packagemanager.repo
+zypper --gpg-auto-import-keys refresh
+
+# shellcheck disable=SC2046
+zypper install -y $(awk '{print $1}' << 'EOF'
+    ca-certificates             # https support
+    python3                     # runtime
+    python3-pip                 # pip
+    python3-devel               # python headers
+    python3-parted              # pyparted
+    libparted-devel             # libparted headers
+    gcc                         # c compiler
+    pacman                      # arch package manager (from OBS repo)
+    arch-install-scripts        # pacstrap, genfstab, etc
+    coreutils                   # gnu core utils
+    util-linux                  # lsblk, blkid, etc
+    pciutils                    # lspci
+    timezone                    # timezone data
+    dosfstools                  # mkfs.fat
+    device-mapper               # dm-* devices
+    e2fsprogs                   # mkfs.ext4
+    cryptsetup                  # luks
+    lvm2
+    btrfsprogs
+    f2fs-tools
+    xfsprogs                    # mkfs.xfs
+    kbd                         # loadkeys
+EOF
+)

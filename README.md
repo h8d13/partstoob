@@ -8,7 +8,7 @@ Experimental ports `archinstoo` to run from **any Linux host** (not just Arch IS
 | Debian | ✅ | ✅ | [DEB](./DEB) | ✅ |
 | Fedora | ✅ | ✅ | [FED](./FED) | ⚠️ |
 | NixOS | ✅ | ✅ | [NIX](./NIX) | ✅ |
-| openSUSE | ✅ | ✅ | - | - |
+| openSUSE | ✅ | ✅ | [OPE](./OPE) | ⚠️ |
 
 For distros that do not package `arch-install-scripts`:
 
