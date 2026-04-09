@@ -10,11 +10,11 @@ zypper --gpg-auto-import-keys refresh
 # shellcheck disable=SC2046
 zypper install -y $(awk '{print $1}' << 'EOF'
     ca-certificates             # https support
-    python3                     # runtime
-    python3-pip                 # pip
-    python3-devel               # python headers
-    python3-parted              # pyparted
-    libparted-devel             # libparted headers
+    python313                   # runtime
+    python313-pip               # pip
+    python313-devel             # python headers
+    python313-parted            # pyparted
+    parted-devel                # libparted headers
     gcc                         # c compiler
     pacman                      # arch package manager (from OBS repo)
     arch-install-scripts        # pacstrap, genfstab, etc
