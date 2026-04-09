@@ -9,11 +9,12 @@ Systemd dep removal is a means to that end, not the goal itself.
 Calls that operate on the **target** system (chroot / `--root=`) are intentional and must stay.
 Only **host-side** tool dependencies need to be eliminated or given fallbacks → inside chroot is always fine.
 
-The idea is to test more host-to-target (h2t) installs without ISOs 
-(as ISO-testing seems to be standard, but is bad practice since it's only a tmp envir, with a lot of tools added, easy to lose track of which tool did what, pr discard proper clean-up steps)
+The idea is to test more host-to-target (h2t) installs without ISOs, but also be able to observe behaviors with more granularity as much as dependencies and the limit between host/target.
+
+As ISO-testing seems to be standard, but is bad practice since it's only a tmp envir, with a lot of tools added, easy to lose track of which tool did what, plus discard proper clean-up steps.
 
 Mainly to see which parts of codebase have either: 
-Clean-up issues or Timing issues with weird disk configs
+Clean-up issues or Timing issues or Flexibility/Fallback behaviors
 
 The other side is also that sysd is available in the target either-way. 
 So was there really any major reason for it to be called on the host (often considered temp, ISO env) system, or for other calls to prompt host at all.
